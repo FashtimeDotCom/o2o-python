@@ -20,6 +20,7 @@ class Service:
 
     def __init__(self):
         self.dataBase = DataBase()
+        self.cachedIds = []
 
     def process(self, data):
         """
@@ -135,20 +136,28 @@ class Service:
 
         allIds = []
         if len(datas) == 0:
-            allIds = [321282, 321298, 323840]
+            allIds = ['0000000000000000321282','0000000000000000321280','0000000000000000321292']
             print('data empty')
         else:
             for i in datas:
-                allIds.append(re.compile(r'^0+').sub('', i['EPC']))
-            print allIds
+                allIds.append(i['EPC'])
 
         # 缓存数据
-        if os.path.exists(PATH):
-            cachedDatas = self.__loadData(PATH)
-            if set(allIds).issubset(set(cachedDatas.keys())):
-                pass
+        dataPath = os.path.join(PATH, 'yoho.txt')
+        if os.path.exists(dataPath):
+            datas = self.__loadData(dataPath)
+            cachedIds = [x['EPC'] for x in datas]
+            newIds = [y for y in allIds if y not in cachedIds]
+            # 查到有新信息需要缓存
+            if newIds:
+                newData = self.__cache(YOHOU, PATH, newIds)
+                allData = datas + newData
+                print allData
+                self.__saveTxtData(allData, PATH)
         else:
-            self.__cache(YOHOU, PATH, allIds)
+            initialData = self.__cache(YOHOU, PATH, allIds)
+            # 保存数据文件
+            self.__saveTxtData(initialData, PATH)
 
         return self.output(CommandType, Var.IDF_CLIENT_CODE_SUCCESS, datas)
 
@@ -174,10 +183,11 @@ class Service:
         '''
         缓存数据
         '''
-        list = {}
+        list = []
         if not os.path.exists(path):
             os.mkdir(path)
-        for id in ids:
+        for iid in ids:
+            id = re.compile(r'^0+').sub('', iid)
             newUrl = url + str(id)
             data = urllib2.urlopen(newUrl).read()
             data = json.loads(data)
@@ -202,23 +212,27 @@ class Service:
                 # 缓存同等商品图片
                 data = self.cacheImgs(path, data, id, u'sameGoods')
                 # threading.Thread(target=self.cacheImgs, args=(data, id, u'sameGoods')).start()
+                data['EPC'] = iid
 
-            list[id] = json.dumps(data)
-
-        allDatas = json.dumps(list)
-        dataPath = path + '\\yoho.txt'
-        f = file(dataPath, "w")
-        f.write(allDatas)
-        f.close()
+            list.append(data)
 
         # 安排每5分钟运行一次自己
         self.schedule.enter(300, 0, self.__cache, (url, path, ids))
 
-    def __loadData(self, path):
-        dataPath = path + '\\yoho.txt'
-        f = file(dataPath, "r")
-        return json.load(f)
+        return list
+
+    def __saveTxtData(self, dat, path):
+        allDatas = json.dumps(dat)
+        dataPath = os.path.join(path, 'yoho.txt')
+        f = file(dataPath, "wb")
+        f.write(allDatas)
         f.close()
+
+    def __loadData(self, path):
+        f = file(path, "rb")
+        d = json.load(f)
+        f.close()
+        return d
 
     def cacheImgs(self, path, jsonData, id, item):
         '''
@@ -231,11 +245,11 @@ class Service:
         if jsonData['data'].has_key(item):
             if isinstance(jsonData[u'data'][item], list):
                 l = []
-                path = path + '\\goodsImgs\\'
+                path = os.path.join(path, 'goodsImgs')
                 if not os.path.exists(path):
                     os.mkdir(path)
                 for i in jsonData[u'data'][item]:
-                    imgPath = path + str(id)
+                    imgPath = os.path.join(path, str(id))
                     imgName = str(jsonData[u'data'][item].index(i)) + '.' + i.split('.')[-1]
                     if not os.path.exists(imgPath):
                         os.mkdir(imgPath)
@@ -244,24 +258,24 @@ class Service:
                 jsonData[u'data'][item] = l
             elif isinstance(jsonData[u'data'][item], dict):
                 d = {}
-                colorPath = path + '\\goodsColors\\'
+                colorPath = os.path.join(path, 'goodsColors')
                 if not os.path.exists(colorPath):
                     os.mkdir(colorPath)
-                sameProPath = path + '\\sameProImgs\\'
+                sameProPath = os.path.join(path, 'sameProImgs')
                 if not os.path.exists(sameProPath):
                     os.mkdir(sameProPath)
                 for k, v in jsonData[u'data'][item].items():
                     if v.has_key(u'color_image') and v[u'color_image']:
                         imgUrl = v[u'color_image']
                         imgName = str(k) + '.' + imgUrl.split('.')[-1]
-                        imgPath = colorPath + str(id)
+                        imgPath = os.path.join(colorPath, str(id))
                         if not os.path.exists(imgPath):
                             os.mkdir(imgPath)
                         v[u'color_image'] = os.path.join(imgPath, imgName)
                     elif v.has_key(u'sameProductImg') and v[u'sameProductImg']:
                         imgUrl = v[u'sameProductImg']
                         imgName = str(k) + '.' + imgUrl.split('.')[-1]
-                        imgPath = sameProPath + str(id)
+                        imgPath = os.path.join(sameProPath, str(id))
                         if not os.path.exists(imgPath):
                             os.mkdir(imgPath)
                         v[u'sameProductImg'] = os.path.join(imgPath, imgName)
@@ -273,7 +287,7 @@ class Service:
                 imgUrl = jsonData[u'data'][item]
                 if not imgUrl:
                     return jsonData
-                imgPath = path + item + 's'
+                imgPath = os.path.join(path, item + 's')
                 imgName = str(id) + '.' + imgUrl.split('.')[-1]
                 if not os.path.exists(imgPath):
                     os.mkdir(imgPath)

@@ -14,7 +14,7 @@ def output(CommandType=''):
 
 def client():
     print time.time()
-    HOST = '172.16.13.93'
+    HOST = '172.16.13.163'
     PORT = 12345
     BUFFER = 4096
     recv = ''
