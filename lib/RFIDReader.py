@@ -257,7 +257,7 @@ class RFIDReader:
         try:
             self.__dll = CDLL(os.path.join(dirpath, "RFIDReaderNet.dll"))
         except Exception, ex:
-            f = open('d:\\log.txt', 'a+')
+            f = open(os.path.join(dirpath, os.path.pardir, 'log', 'dll.txt'), 'a+')
             f.write(str(ex) + '\n')
             f.close()
 
