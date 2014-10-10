@@ -3,7 +3,7 @@
 """
 客户端服务
 """
-import redis, time, urllib2, os, sched, re
+import redis, time, urllib, urllib2, os, sched, re
 import json, threading
 import ConfigParser
 from Var import *
@@ -95,6 +95,7 @@ class Service:
         states = []
         YOHOU = "http://api.open.yohobuy.com/?open_key=123554545&method=cnstore.product.view&v=1&sku="  # 有货商品信息接口
         PATH = "D:\\youhuos\\"
+        allIds = []
 
         try:
             # 获取groudIds
@@ -125,39 +126,36 @@ class Service:
                             #         continue
 
                     print 'groupID:%s ------- %s' % (groupID, epc['tagEPC'])
-                    datas.append({'EPC': epc['tagEPC'], 'GroupID': groupID})
+                    # datas.append({'EPC': epc['tagEPC'], 'GroupID': groupID})
+
+                    allIds.append(epc['tagEPC'])
 
                     # print "now time: %s, workPEC time :%s , onEPC time: %s, scan EPC time: %s \n\n\n" \
                     #    % (time.strftime('%Y-%m-%d %H:%M:%S', time.localtime()),epc['lastTime'], onEpcs[key]['lastTime'], AllEpcs[key]['TimeStamp'])
+
+            # 缓存数据
+            dataPath = os.path.join(PATH, 'yoho.txt')
+            if os.path.exists(dataPath):
+                cachedDatas = self.__loadData(dataPath)
+                cachedIds = [x['EPC'] for x in cachedDatas]
+                newIds = [y for y in allIds if y not in cachedIds]
+                print newIds
+                # 查到有新信息需要缓存
+                if newIds:
+                    datas = self.__cache(YOHOU, PATH, newIds)
+                    allData = cachedDatas + datas
+                    self.__saveTxtData(allData, PATH)
+                else:
+                    datas = [z for z in cachedDatas if z['EPC'] in allIds]
+            else:
+                initialData = self.__cache(YOHOU, PATH, allIds)
+                # 保存数据文件
+                self.__saveTxtData(initialData, PATH)
         except Exception, ex:
             # print "Service getTagsList function error:\n"
             #print ex
             pass
 
-        allIds = []
-        if len(datas) == 0:
-            allIds = ['0000000000000000321282','0000000000000000321280']
-            print('data empty')
-        else:
-            for i in datas:
-                allIds.append(i['EPC'])
-
-        # 缓存数据
-        dataPath = os.path.join(PATH, 'yoho.txt')
-        if os.path.exists(dataPath):
-            datas = self.__loadData(dataPath)
-            cachedIds = [x['EPC'] for x in datas]
-            newIds = [y for y in allIds if y not in cachedIds]
-            # 查到有新信息需要缓存
-            if newIds:
-                newData = self.__cache(YOHOU, PATH, newIds)
-                allData = datas + newData
-                print allData
-                self.__saveTxtData(allData, PATH)
-        else:
-            initialData = self.__cache(YOHOU, PATH, allIds)
-            # 保存数据文件
-            self.__saveTxtData(initialData, PATH)
 
         return self.output(CommandType, Var.IDF_CLIENT_CODE_SUCCESS, datas)
 
@@ -192,6 +190,8 @@ class Service:
             data = urllib2.urlopen(newUrl).read()
             data = json.loads(data)
 
+            data['EPC'] = iid
+
             # 缓存数据中的图片
             if data['code'] == 200:
                 # 缓存产品图片
@@ -212,7 +212,6 @@ class Service:
                 # 缓存同等商品图片
                 data = self.cacheImgs(path, data, id, u'sameGoods')
                 # threading.Thread(target=self.cacheImgs, args=(data, id, u'sameGoods')).start()
-                data['EPC'] = iid
 
             list.append(data)
 
@@ -297,6 +296,8 @@ class Service:
         return jsonData
 
     def saveImg(self, path, name, url):
-        imgDat = urllib2.urlopen(url).read()
-        with open(os.path.join(path, name), "wb") as img:
-            img.write(imgDat)
+        img = urllib.urlopen(url)
+        if(img.getcode() == 200):
+            imgDat = img.read()
+            with open(os.path.join(path, name), "wb") as img:
+                img.write(imgDat)
