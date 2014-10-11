@@ -29,6 +29,8 @@ class Var:
         self.COMMANDTYPE_STATE_WORK_PARAM = 'ShelfNear'  # 请求参数State:  临架
         self.COMMANDTYPE_STATE_OFF_PARAM = 'ShelfOut'  # 请求参数State:  离架
         self.COMMANDTYPE_STATE_ON_WORK_PARAM = 'ShelfOnAndNear'  # 请求参数State 在架临架
+        self.CACHE_PATH = os.path.join(os.path.dirname(os.path.abspath("__file__")), 'yohuos') # 数据存放路径
+        self.YOHO_URL = "http://api.open.yohobuy.com/?open_key=123554545&method=cnstore.product.view&v=1&sku="  # 有货商品信息接口
 
     def loadConfig(self):
         """

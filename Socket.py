@@ -47,8 +47,8 @@ class Socket(multiprocessing.Process):
     def threadProcess(self, client, clientaddr):
         recv = client.recv(int(Var.IDF_SOCKET_BUFFER))
         try:
+            service = Service()
             while len(recv):
-                service = Service()
                 # 处理发送过来的指令
                 print recv
                 ret = service.process(recv)

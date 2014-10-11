@@ -20,7 +20,7 @@ class Service:
 
     def __init__(self):
         self.dataBase = DataBase()
-        self.cachedIds = []
+        self.cachedDatas = self.__loadData(os.path.join(Var.CACHE_PATH, 'yoho.txt'))
 
     def process(self, data):
         """
@@ -93,8 +93,6 @@ class Service:
         r = redis.StrictRedis(host=Var.REDIS_HOST, port=Var.REDIS_PORT, db=Var.REDIS_DB)
         datas = []
         states = []
-        YOHOU = "http://api.open.yohobuy.com/?open_key=123554545&method=cnstore.product.view&v=1&sku="  # 有货商品信息接口
-        PATH = "D:\\youhuos\\"
         allIds = []
 
         try:
@@ -133,24 +131,23 @@ class Service:
                     # print "now time: %s, workPEC time :%s , onEPC time: %s, scan EPC time: %s \n\n\n" \
                     #    % (time.strftime('%Y-%m-%d %H:%M:%S', time.localtime()),epc['lastTime'], onEpcs[key]['lastTime'], AllEpcs[key]['TimeStamp'])
 
+            # allIds = ['000000000000000000576250', '000000000000000000574050', '000000000000000000573892']
             # 缓存数据
-            dataPath = os.path.join(PATH, 'yoho.txt')
-            if os.path.exists(dataPath):
-                cachedDatas = self.__loadData(dataPath)
-                cachedIds = [x['EPC'] for x in cachedDatas]
+            if self.cachedDatas:
+                cachedIds = [x['EPC'] for x in self.cachedDatas]
                 newIds = [y for y in allIds if y not in cachedIds]
-                print newIds
                 # 查到有新信息需要缓存
                 if newIds:
-                    datas = self.__cache(YOHOU, PATH, newIds)
-                    allData = cachedDatas + datas
-                    self.__saveTxtData(allData, PATH)
+                    datas = self.__cache(Var.YOHO_URL, Var.CACHE_PATH, newIds)
+                    allData = self.cachedDatas + datas
+                    self.__saveTxtData(allData, Var.CACHE_PATH)
                 else:
-                    datas = [z for z in cachedDatas if z['EPC'] in allIds]
+                    datas = [z for z in self.cachedDatas if z['EPC'] in allIds]
             else:
-                initialData = self.__cache(YOHOU, PATH, allIds)
-                # 保存数据文件
-                self.__saveTxtData(initialData, PATH)
+                if allIds:
+                    initialData = self.__cache(Var.YOHO_URL, Var.CACHE_PATH, allIds)
+                    # 保存数据文件
+                    self.__saveTxtData(initialData, Var.CACHE_PATH)
         except Exception, ex:
             # print "Service getTagsList function error:\n"
             #print ex
@@ -191,6 +188,8 @@ class Service:
             data = json.loads(data)
 
             data['EPC'] = iid
+            qrCodes = DataBase().qrCodes
+            data['qrCode'] = qrCodes[iid]
 
             # 缓存数据中的图片
             if data['code'] == 200:
@@ -221,6 +220,7 @@ class Service:
         return list
 
     def __saveTxtData(self, dat, path):
+        self.cachedDatas = dat
         allDatas = json.dumps(dat)
         dataPath = os.path.join(path, 'yoho.txt')
         f = file(dataPath, "wb")
@@ -228,10 +228,12 @@ class Service:
         f.close()
 
     def __loadData(self, path):
-        f = file(path, "rb")
-        d = json.load(f)
-        f.close()
-        return d
+        if os.path.exists(path):
+            f = file(path, "rb")
+            d = json.load(f)
+            f.close()
+            return d
+        return None
 
     def cacheImgs(self, path, jsonData, id, item):
         '''
