@@ -153,7 +153,6 @@ class Service:
             #print ex
             pass
 
-
         return self.output(CommandType, Var.IDF_CLIENT_CODE_SUCCESS, datas)
 
     def setting(self, CommandType, onToWorkTime, workToOffTime, workToOnTimes, offToOnTimes):
@@ -189,7 +188,8 @@ class Service:
 
             data['EPC'] = iid
             qrCodes = DataBase().qrCodes
-            data['qrCode'] = qrCodes[iid]
+            data['qrCode'] = qrCodes.has_key(iid) and  qrCodes[iid] or None
+            print data
 
             # 缓存数据中的图片
             if data['code'] == 200:
