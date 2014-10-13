@@ -126,12 +126,15 @@ class Service:
                     print 'groupID:%s ------- %s' % (groupID, epc['tagEPC'])
                     # datas.append({'EPC': epc['tagEPC'], 'GroupID': groupID})
 
-                    allIds.append(epc['tagEPC'])
+                    # 标签EPC映射
+                    tagCasts = DataBase().tagCasts
+                    allIds.append(tagCasts[epc['tagEPC']] if tagCasts.has_key(epc['tagEPC']) else epc['tagEPC'])
 
                     # print "now time: %s, workPEC time :%s , onEPC time: %s, scan EPC time: %s \n\n\n" \
                     #    % (time.strftime('%Y-%m-%d %H:%M:%S', time.localtime()),epc['lastTime'], onEpcs[key]['lastTime'], AllEpcs[key]['TimeStamp'])
 
             # allIds = ['000000000000000000576250', '000000000000000000574050', '000000000000000000573892']
+
             # 缓存数据
             if self.cachedDatas:
                 cachedIds = [x['EPC'] for x in self.cachedDatas]
