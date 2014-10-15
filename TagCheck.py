@@ -7,6 +7,7 @@ import redis, json, threading, time, os, multiprocessing
 from DataBase import *
 from Var import *
 import function
+from CacheData import *
 
 
 class TagCheck(multiprocessing.Process):
@@ -21,6 +22,7 @@ class TagCheck(multiprocessing.Process):
         multiprocessing.Process.__init__(self)
         self.r = None
         self.dataBase = None
+        self.cacheData = None
         self.threads = []
 
     def process(self):
@@ -50,6 +52,7 @@ class TagCheck(multiprocessing.Process):
         try:
             self.r = redis.StrictRedis(host=Var.REDIS_HOST, port=Var.REDIS_PORT, db=Var.REDIS_DB)
             self.dataBase = DataBase()
+            self.cacheData = CacheData()
             self.process()
         except Exception, ex:
             function.log("TagCheck error", "error.log").error(ex)
@@ -71,11 +74,15 @@ class TagCheck(multiprocessing.Process):
                     epcs = self.r.get(DeviceID)  # 所有标签库
                     if epcs != None and len(epcs):
                         epcs = json.loads(epcs)
+                        needIds = []
                         for key, epc in epcs.items():  # 判断是否在架
                             onEpc = {'tagEPC': epc['EPC'], 'lastTime': epc['TimeStamp'], \
                                      'RSSI': epc['RSSI'], 'Frequency': epc['Frequency'], 'OnLineTimes': 0, \
                                      'TID': epc['TID'], 'Times': 1, 'DeviceID': DeviceID, 'ant': epc['AntennaID'],
                                      'desp': ''}
+
+                            # 构建需要缓存的EPC列表
+                            needIds.append(epc['EPC'])
 
                             groupID = self.getGroupID(DeviceID, epc['AntennaID'])
                             if groupID == None:
@@ -104,6 +111,11 @@ class TagCheck(multiprocessing.Process):
 
                             self.r.hset(groupID, 'on', json.dumps(onEpcs))
                             self.r.sadd(Var.REDIS_GROUP_KEY, groupID)
+
+                        # 在新线程中缓存数据
+                        if needIds:
+                            self.cacheData.realCache(needIds)
+
                 time.sleep(0.001)
 
         except Exception, ex:
@@ -146,6 +158,12 @@ class TagCheck(multiprocessing.Process):
 
                                 workEpcs[onEpc['tagEPC']] = onEpc
                                 workEpcs[onEpc['tagEPC']]['Times'] = times
+
+                                # 加载缓存中的数据
+                                if self.cacheData.cachedDatas:
+                                    workEpcs[onEpc['tagEPC']]['Datas'] = self.cacheData.getData(onEpc['tagEPC'])
+                                else:
+                                    workEpcs[onEpc['tagEPC']]['Datas'] = {}
 
                         self.r.hset(groupID, 'work', json.dumps(workEpcs))
                 time.sleep(0.01)

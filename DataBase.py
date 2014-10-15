@@ -72,7 +72,7 @@ class DataBase:
         # 读写器数据
         #readerIP:读写器IP地址
         self.readers = [
-            {'id': '1', 'readerID': '1', 'readerIP': '172.16.13.225', 'desp': '', 'nLevel1': 0, 'nLevel2': 0,
+            {'id': '1', 'readerID': '1', 'readerIP': '172.16.13.226', 'desp': '', 'nLevel1': 0, 'nLevel2': 0,
              'nLevel3': 0, 'nLevel4': 0},
             #  {'id':'2','readerID':'2', 'readerIP':'172.16.13.223','desp':'','nLevel1':0,'nLevel2':0, 'nLevel3':0, 'nLevel4':0},
             #{'id':'3','readerID':'3', 'readerIP':'172.16.13.224','desp':'','nLevel1':0,'nLevel2':0, 'nLevel3':0, 'nLevel4':0},
