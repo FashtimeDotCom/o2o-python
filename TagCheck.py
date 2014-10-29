@@ -7,7 +7,11 @@ import redis, json, threading, time, os, multiprocessing
 from DataBase import *
 from Var import *
 import function
+<<<<<<< HEAD
 from CacheData import *
+=======
+#from CacheData import *
+>>>>>>> bc3ffc8c14789685508207882825c34e4a5b3675
 
 
 class TagCheck(multiprocessing.Process):
@@ -22,7 +26,11 @@ class TagCheck(multiprocessing.Process):
         multiprocessing.Process.__init__(self)
         self.r = None
         self.dataBase = None
+<<<<<<< HEAD
         self.cacheData = None
+=======
+        #self.cacheData = None
+>>>>>>> bc3ffc8c14789685508207882825c34e4a5b3675
         self.threads = []
 
     def process(self):

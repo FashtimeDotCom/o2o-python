@@ -128,12 +128,11 @@ class Service:
 
                     # print "now time: %s, workPEC time :%s , onEPC time: %s, scan EPC time: %s \n\n\n" \
                     #    % (time.strftime('%Y-%m-%d %H:%M:%S', time.localtime()),epc['lastTime'], onEpcs[key]['lastTime'], AllEpcs[key]['TimeStamp'])
-                
         except Exception, ex:
             # print "Service getTagsList function error:\n"
             #print ex
             pass
-
+        
         return self.output(CommandType, Var.IDF_CLIENT_CODE_SUCCESS, datas)
 
     def setting(self, CommandType, onToWorkTime, workToOffTime, workToOnTimes, offToOnTimes):
