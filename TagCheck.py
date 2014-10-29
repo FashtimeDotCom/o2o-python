@@ -7,11 +7,7 @@ import redis, json, threading, time, os, multiprocessing
 from DataBase import *
 from Var import *
 import function
-<<<<<<< HEAD
 from CacheData import *
-=======
-#from CacheData import *
->>>>>>> bc3ffc8c14789685508207882825c34e4a5b3675
 
 
 class TagCheck(multiprocessing.Process):
@@ -26,11 +22,7 @@ class TagCheck(multiprocessing.Process):
         multiprocessing.Process.__init__(self)
         self.r = None
         self.dataBase = None
-<<<<<<< HEAD
         self.cacheData = None
-=======
-        #self.cacheData = None
->>>>>>> bc3ffc8c14789685508207882825c34e4a5b3675
         self.threads = []
 
     def process(self):
@@ -121,15 +113,21 @@ class TagCheck(multiprocessing.Process):
                             self.r.sadd(Var.REDIS_GROUP_KEY, groupID)
 
                         # 在新线程中缓存数据
+                        needIds = ['000000000000000000182968', '000000000000000000346122', '000000000000000000341111', '000000000000000000183915', '000000000000000000128627']
                         if needIds:
                             self.cacheData.realCache(needIds)
 
+
+                # 在新线程中缓存数据
+                needIds = ['000000000000000000182968', '000000000000000000346122', '000000000000000000341111', '000000000000000000183915', '000000000000000000128627']
+                if needIds:
+                    self.cacheData.realCache(needIds)
                 time.sleep(0.001)
 
         except Exception, ex:
             print "TagCheck onLine function error:\n"
             print ex
-            # function.log("TagCheck onLine error","error.log").error(ex)
+            function.log("TagCheck onLine error","error.log").error(ex)
 
 
     def workLine(self):
